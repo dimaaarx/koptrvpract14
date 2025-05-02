@@ -1,10 +1,7 @@
 import java.util.Scanner;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
+import java.text.*;
+import java.util.Date;
 
 public class MiniDiary {
     static String[] dates = new String[50];
@@ -13,89 +10,59 @@ public class MiniDiary {
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        String dateFormat = "yyyy-MM-dd HH:mm"; // формат за замовчуванням
-        boolean run = true;
-
-        System.out.println("Оберіть режим:");
-        System.out.println("1. Новий щоденник");
-        System.out.println("2. Завантажити існуючий щоденник");
-        String mode = sc.nextLine();
-
-        if (mode.equals("2")) {
-            System.out.print("Введіть шлях до файлу: ");
-            String filePath = sc.nextLine();
-            try {
-                BufferedReader reader = new BufferedReader(new FileReader(filePath));
-                String line;
-                String tempDate = "";
-                String tempText = "";
-                while ((line = reader.readLine()) != null) {
-                    if (line.length() == 0 && tempDate.length() > 0) {
-                        dates[count] = tempDate;
-                        texts[count] = tempText;
-                        count++;
-                        tempDate = "";
-                        tempText = "";
-                    } else if (tempDate.length() == 0) {
-                        tempDate = line;
-                    } else {
-                        tempText += line + "\n";
-                    }
-                }
-                if (tempDate.length() > 0) {
-                    dates[count] = tempDate;
-                    texts[count] = tempText;
-                    count++;
-                }
-                reader.close();
-                System.out.println("Щоденник завантажено.");
-            } catch (Exception e) {
-                System.out.println("Не вдалося завантажити файл.");
+        String format = "";
+        System.out.println("1. yyyy-MM-dd\n2. dd.MM.yyyy\n3. Власний формат");
+        while (true) {
+            System.out.print("Оберіть формат дати: ");
+            String c = sc.nextLine();
+            if (c.equals("1")) { format = "yyyy-MM-dd"; break; }
+            if (c.equals("2")) { format = "dd.MM.yyyy"; break; }
+            if (c.equals("3")) {
+                System.out.print("Введіть формат: ");
+                format = sc.nextLine(); break;
             }
         }
 
-        System.out.print("Введіть бажаний формат дати (наприклад, yyyy-MM-dd HH:mm): ");
-        String userFormat = sc.nextLine();
-        if (userFormat.length() > 0) {
-            dateFormat = userFormat;
-        }
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dateFormat);
-
-        while (run) {
-            System.out.println("\nМІНІ-ЩОДЕННИК");
-            System.out.println("1. Додати запис");
-            System.out.println("2. Видалити запис");
-            System.out.println("3. Показати всі записи");
-            System.out.println("4. Вийти");
-            System.out.print("Ваш вибір: ");
-            String choice = sc.nextLine();
-
-            if (choice.equals("1")) {
-                if (count >= 50) {
-                    System.out.println("Щоденник заповнений.");
-                    continue;
-                }
-
-                String date = LocalDateTime.now().format(formatter);
-
-                System.out.println("Введіть текст запису (порожній рядок — завершити):");
-                String text = "";
+        System.out.print("1. Створити новий щоденник\n2. Завантажити з файлу\nВаш вибір: ");
+        String op = sc.nextLine();
+        if (op.equals("2")) {
+            System.out.print("Шлях до файлу: ");
+            String path = sc.nextLine();
+            try {
+                BufferedReader r = new BufferedReader(new FileReader(path));
                 while (true) {
-                    String line = sc.nextLine();
-                    if (line.length() == 0) break;
-                    text += line + "\n";
+                    String d = r.readLine(); if (d == null) break;
+                    String t = r.readLine(); if (t == null) break;
+                    dates[count] = d;
+                    texts[count] = t;
+                    count++;
+                    r.readLine();
                 }
+                r.close();
+            } catch (IOException e) {
+                System.out.println("Помилка завантаження.");
+            }
+        }
 
-                dates[count] = date;
-                texts[count] = text;
-                count++;
-                System.out.println("Запис додано.");
-
-            } else if (choice.equals("2")) {
-                System.out.print("Введіть дату для видалення (в точному форматі): ");
+        boolean run = true;
+        while (run) {
+            System.out.println("\n1. Додати\n2. Видалити\n3. Показати\n4. Вийти");
+            System.out.print("Ваш вибір: ");
+            String ch = sc.nextLine();
+            if (ch.equals("1")) {
+                if (count >= 50) continue;
+                System.out.print("Введіть дату (" + format + "): ");
                 String d = sc.nextLine();
-                boolean found = false;
-
+                try { new SimpleDateFormat(format).parse(d); } catch (Exception e) { System.out.println("Невірна дата."); continue; }
+                System.out.println("Введіть текст (порожній рядок - кінець):");
+                String t = "", l;
+                while (!(l = sc.nextLine()).equals("")) t += l + " ";
+                dates[count] = d;
+                texts[count] = t;
+                count++;
+            } else if (ch.equals("2")) {
+                System.out.print("Дата: ");
+                String d = sc.nextLine();
                 for (int i = 0; i < count; i++) {
                     if (dates[i].equals(d)) {
                         for (int j = i; j < count - 1; j++) {
@@ -103,54 +70,33 @@ public class MiniDiary {
                             texts[j] = texts[j + 1];
                         }
                         count--;
-                        found = true;
-                        System.out.println("Запис видалено.");
                         break;
                     }
                 }
-
-                if (!found) {
-                    System.out.println("Запис не знайдено.");
+            } else if (ch.equals("3")) {
+                for (int i = 0; i < count; i++) {
+                    System.out.println(dates[i] + ": " + texts[i]);
                 }
-
-            } else if (choice.equals("3")) {
-                if (count == 0) {
-                    System.out.println("Записів немає.");
-                } else {
-                    for (int i = 0; i < count; i++) {
-                        System.out.println("Дата: " + dates[i]);
-                        System.out.println("Запис:\n" + texts[i]);
-                        System.out.println("-----------");
-                    }
-                }
-
-            } else if (choice.equals("4")) {
-                System.out.print("Бажаєте зберегти щоденник у файл? (так/ні): ");
-                String save = sc.nextLine();
-                if (save.equalsIgnoreCase("так")) {
-                    System.out.print("Введіть шлях до файлу: ");
-                    String filePath = sc.nextLine();
+            } else if (ch.equals("4")) {
+                System.out.print("Зберегти у файл? (так/ні): ");
+                if (sc.nextLine().equals("так")) {
+                    System.out.print("Файл: ");
                     try {
-                        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
+                        BufferedWriter w = new BufferedWriter(new FileWriter(sc.nextLine()));
                         for (int i = 0; i < count; i++) {
-                            writer.write(dates[i]);
-                            writer.newLine();
-                            writer.write(texts[i]);
-                            writer.newLine();
+                            w.write(dates[i]); w.newLine();
+                            w.write(texts[i]); w.newLine();
+                            w.newLine();
                         }
-                        writer.close();
-                        System.out.println("Щоденник збережено.");
-                    } catch (Exception e) {
-                        System.out.println("Не вдалося зберегти файл.");
+                        w.close();
+                    } catch (IOException e) {
+                        System.out.println("Помилка збереження.");
                     }
                 }
                 run = false;
-            } else {
-                System.out.println("Невірний вибір.");
             }
         }
 
         sc.close();
     }
 }
-   }
